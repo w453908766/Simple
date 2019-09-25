@@ -1,0 +1,4 @@
+
+a simple interpreter forked and modified from https://github.com/sdiehl/write-you-a-haskell chapter7
+
+simple type, simple lambda calculus, parametric polymorphism, type inference

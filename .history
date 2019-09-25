@@ -1,0 +1,46 @@
+:r
+1+1
+:q
+:type owl
+let owl = doller comb comb
+let doller f x = f x
+let comb f g x = f (g x)
+:type f
+let f x = x+1
+it
+it+4
+it
+3
+it
+it
+it
+it+4
+4
+fact 5
+let rec fact n = if n==0 then 1 else n*fact (n-1)
+let fact n = if n==0 then 1 else n*fact (n-1)
+f 3
+let f x = x+1
+:q
+let a = (1+2)
+let a = (1+)
+let a = 1+
+let a = 1+2
+a
+let a = 5
+a
+let a = 4
+4
+1+2
+:type doller comb comb
+let doller f x = f x
+let comb f g x = f (g x)
+:type f
+let f x = x 1
+:q
+:r
+quit
+:quit
+:type f
+type f
+let f x = x 1
