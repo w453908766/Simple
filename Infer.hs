@@ -18,7 +18,6 @@ import Syntax
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
-import Control.Monad.Identity
 
 import Data.List (nub)
 import qualified Data.Map as Map
@@ -48,10 +47,10 @@ initInfer = InferState { count = 0 }
 
 type Constraint = (Type, Type)
 
-type Unifier = (Subst, [Constraint])
+
 
 -- | Constraint solver monad
-type Solve a = ExceptT TypeError Identity a
+type Solve a = Except TypeError a
 
 newtype Subst = Subst (Map.Map TVar Type)
   deriving (Eq, Ord, Show, Semigroup, Monoid)
@@ -134,9 +133,8 @@ lookupEnv :: Name -> Infer Type
 lookupEnv x = do
   env <- ask
   case Map.lookup x env of
-      Nothing   ->  throwError $ UnboundVariable x
-      Just s    ->  do t <- instantiate s
-                       return t
+      Nothing   -> throwError $ UnboundVariable x
+      Just s    -> instantiate s
 
 letters :: [String]
 letters = [1..] >>= flip replicateM ['a'..'z']
@@ -218,6 +216,7 @@ inferTop env ((name, ex):xs) = case inferExpr env ex of
   Left err -> Left err
   Right ty -> inferTop (Map.insert name ty env) xs
 
+
 normalize :: Scheme -> Scheme
 normalize (Forall _ body) = Forall (map snd ord) (normtype body)
   where
@@ -246,10 +245,6 @@ emptySubst = mempty
 compose :: Subst -> Subst -> Subst
 (Subst s1) `compose` (Subst s2) = Subst $ Map.map (apply (Subst s1)) s2 `Map.union` s1
 
--- | Run the constraint solver
-runSolve :: [Constraint] -> Either TypeError Subst
-runSolve cs = runIdentity $ runExceptT $ solver st
-  where st = (emptySubst, cs)
 
 unifyMany :: [Type] -> [Type] -> Solve Subst
 unifyMany [] [] = return emptySubst
@@ -267,13 +262,15 @@ unifies (TArr t1 t2) (TArr t3 t4) = unifyMany [t1, t2] [t3, t4]
 unifies t1 t2 = throwError $ UnificationFail t1 t2
 
 -- Unification solver
-solver :: Unifier -> Solve Subst
-solver (su, cs) =
-  case cs of
-    [] -> return su
-    ((t1, t2): cs0) -> do
-      su1  <- unifies t1 t2
-      solver (su1 `compose` su, apply su1 cs0)
+solver :: Subst -> [Constraint] -> Solve Subst
+solver su [] = return su
+solver su ((t1, t2): cs0) = do
+  su1  <- unifies t1 t2
+  solver (su1 `compose` su) (apply su1 cs0)
+
+runSolve :: [Constraint] -> Either TypeError Subst
+runSolve cs = runExcept $ solver emptySubst cs
+
 
 bind ::  TVar -> Type -> Solve Subst
 bind a t | t == TVar a     = return emptySubst
