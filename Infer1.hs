@@ -1,4 +1,6 @@
 
+{-# LANGUAGE FlexibleInstances #-}
+
 import Control.Monad.Except
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -23,16 +25,6 @@ data TypeError
   | Ambigious [Constraint]
   | UnificationMismatch [Type] [Type]
   deriving (Show, Eq)
-
-class Substitutable a where
-  apply :: TypeMap -> a -> a
-  ftv   :: a -> Set.Set TVar
-
-instance Substitutable Type where
-  apply map t@(TCon _) = t
-  apply map (TArr a b) = TArr (apply map a) (apply map b)
-  apply map t@(TVar a) = Map.findWithDefault t t map
-  
 
 ----------------------------------------------------
 
@@ -60,14 +52,6 @@ putConstraint :: (Type, Type) -> Infer ()
 putConstraint c = do
   (env, cs, letters) <- get
   put (env, c:cs, letters)
-
-{-
-putTyEnv :: (Type, Type) -> Infer ()
-putTyEnv (TVar t0, t1) = do
-  (env, cs, letters) <- get
-  put (env, Map.insert t0 t1 tyenv, cs, letters)
--}
-
 
 
 newTVar :: Infer Type
@@ -140,9 +124,16 @@ f0 = Lam "p" $ Lam "x" $ If (Var "p") (Var "x") (Lit $ LInt 5)
 
 Right (ty, (env, cs, _)) = runInfer Map.empty f0
    
-tymap = solveType cs
+tymap = solveType cs0
 
-t = apply tymap ty
+cs0 =
+  [ (TVar "x", TVar "y")
+  , (TVar "x", TArr (TVar "a") (TCon "Int"))
+  , (TVar "y", TArr (TCon "Double") (TVar "b"))
+  ]
+
+t0 = apply tymap (TVar "x")
+t1 = apply tymap (TVar "y")
   
 
    
