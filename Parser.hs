@@ -56,17 +56,6 @@ letin = do
   e2 <- expr
   return (Let x e1 e2)
 
-letrecin :: Parser Expr
-letrecin = do
-  reserved "let"
-  reserved "rec"
-  x <- identifier
-  reservedOp "="
-  e1 <- expr
-  reserved "in"
-  e2 <- expr
-  return (Let x e1 e2)
-
 ifthen :: Parser Expr
 ifthen = do
   reserved "if"
@@ -84,7 +73,6 @@ aexp =
   <|> number
   <|> ifthen
   <|> fix
-  <|> try letrecin
   <|> letin
   <|> lambda
   <|> variable

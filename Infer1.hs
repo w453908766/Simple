@@ -1,6 +1,8 @@
 
 {-# LANGUAGE FlexibleInstances #-}
 
+module Infer1 (Env, inferTop) where
+
 import Control.Monad.Except
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -10,38 +12,32 @@ import Type
 import Syntax
 import Solve
 
-type Constraint =(Type, Type)
+type Constraint = (Type, Type)
 type Env = Map.Map String Scheme
-type TypeMap = Map.Map Type Type
 
 type InferState = (Env, [Constraint], [String])
 type Infer a = StateT InferState (Except TypeError) a
 
-
-data TypeError
-  = UnificationFail Type Type
-  | InfiniteType TVar Type
-  | UnboundVariable String
-  | Ambigious [Constraint]
-  | UnificationMismatch [Type] [Type]
-  deriving (Show, Eq)
-
 ----------------------------------------------------
+
+
+instantiate :: Scheme -> Infer Type
+instantiate (Forall xs ty) = do
+  let ts = fmap TVar xs
+  ts' <- traverse (const newTVar) xs
+  let tymap = Map.fromList (zip ts ts')
+  return $ apply tymap ty
+
+
 
 lookupEnv :: String -> Infer Type
 lookupEnv x = do
   (env, _, _) <- get
   case Map.lookup x env of
-      Nothing   -> throwError $ UnboundVariable x
-      Just s    -> instantiate s
+    Nothing -> throwError $ UnboundVariable x
+    Just s  -> instantiate s
 
-instantiate :: Scheme -> Infer Type
-instantiate (Forall vs0 ty) = do
-  let vs = map TVar vs0
-  vs' <- traverse (const newTVar) vs
-  let tyenv = Map.fromList $ zip vs vs'
-  return $ apply tyenv ty
-  
+ 
 
 putEnv :: Env -> Infer ()
 putEnv env = do
@@ -108,11 +104,29 @@ infer (App e1 e2) = do
 letters :: [String]
 letters = [1..] >>= flip replicateM ['a'..'z']
 
+closeOver :: Type -> Scheme
+closeOver ty = Forall (Set.toList $ ftv ty) ty
   
 runInfer :: Env -> Expr -> Either TypeError (Type, InferState)
 runInfer env expr = do
   let state = (env, [], letters)
   runExcept $ runStateT (infer expr) state
+
+
+inferExpr :: Env -> Expr -> Either TypeError Scheme
+inferExpr env expr = do
+  (ty, (_,cs,_)) <- runInfer env expr
+  tymap <- solveType cs
+  return $ closeOver $ apply tymap ty
+
+inferTop :: Env -> [(String, Expr)] -> Either TypeError Env
+inferTop env [] = Right env
+inferTop env ((name, ex):xs) = case inferExpr env ex of
+  Left err -> Left err
+  Right ty -> inferTop (Map.insert name ty env) xs
+
+
+
 
 -----------------------------------------------------
 
@@ -122,18 +136,20 @@ f = Lam "x" $ Op Add (Var "x") (Lit $ LInt 1)
 f0 = Lam "p" $ Lam "x" $ If (Var "p") (Var "x") (Lit $ LInt 5)
 -- f0 = \p -> \x -> if p then x else 5
 
-Right (ty, (env, cs, _)) = runInfer Map.empty f0
+
    
+{-
 tymap = solveType cs0
 
 cs0 =
   [ (TVar "x", TVar "y")
-  , (TVar "x", TArr (TVar "a") (TCon "Int"))
-  , (TVar "y", TArr (TCon "Double") (TVar "b"))
+  , (TVar "x", TArr (TVar "c") (TCon "Int"))
+  , (TVar "y", TArr (TCon "Double") (TVar "d"))
   ]
 
 t0 = apply tymap (TVar "x")
 t1 = apply tymap (TVar "y")
+-}
   
 
    
