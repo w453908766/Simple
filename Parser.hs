@@ -40,6 +40,19 @@ lambda = do
   body <- expr
   return $ foldr Lam body args
 
+letin :: Parser Expr
+letin = do
+  reserved "let"
+  name <- identifier
+  vals <- many identifier
+  reservedOp "="
+  e1 <- expr
+  reserved "in"
+  e2 <- expr
+
+  let e = foldr Lam e1 vals
+  return (Let name e e2)
+
 ifthen :: Parser Expr
 ifthen = do
   reserved "if"
@@ -56,6 +69,7 @@ aexp =
   <|> bool
   <|> number
   <|> ifthen
+  <|> letin
   <|> lambda
   <|> variable
 
@@ -72,16 +86,11 @@ infixOp x f = Ex.Infix (reservedOp x >> return f)
 --table :: Operators Expr
 table :: [[Ex.Operator L.Text () Identity Expr]] 
 table = [
-    [
-      infixOp "*" (Op Mul) Ex.AssocLeft
+    [infixOp "*" (Op Mul) Ex.AssocLeft],
+    [infixOp "+" (Op Add) Ex.AssocLeft
+    ,infixOp "-" (Op Sub) Ex.AssocLeft
     ],
-    [
-      infixOp "+" (Op Add) Ex.AssocLeft
-    , infixOp "-" (Op Sub) Ex.AssocLeft
-    ],
-    [
-      infixOp "==" (Op Eql) Ex.AssocLeft
-    ]
+    [infixOp "==" (Op Eql) Ex.AssocLeft]
   ]
 
 expr :: Parser Expr

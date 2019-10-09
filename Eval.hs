@@ -49,9 +49,13 @@ eval env (App fun arg) =
   in eval nenv body
 
 eval env (If cond tr fl) =
-  case eval env cond of
-    VBool True  -> eval env tr
-    VBool False -> eval env fl
+  let (VBool c) = eval env cond
+  in eval env (if c then tr else fl)
+
+eval env (Let name value expr) = 
+  let env' = Map.insert name val env 
+      val = eval env' value
+  in eval env' expr
 
 evalDef :: TermEnv -> Decl -> TermEnv
 evalDef env (Define name value) = env'
