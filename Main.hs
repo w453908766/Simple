@@ -6,7 +6,7 @@
 import Syntax
 import Infer
 import Parser
---import Pretty
+import Pretty
 import Eval
 
 import Data.Monoid
@@ -76,7 +76,7 @@ cmd source = exec True (L.pack source)
 browse :: [String] -> Repl ()
 browse _ = do
   st <- get
-  liftIO $ mapM_ putStrLn $ fmap show (tyctx st)
+  liftIO $ mapM_ putStrLn $ fmap ppsignature $ Map.toList (tyctx st)
 
 -- :load command
 load :: [String] -> Repl ()
@@ -90,8 +90,9 @@ typeof args = do
   st <- get
   let arg = unwords args
   case Map.lookup arg (tyctx st) of
-    Just val -> liftIO $ putStrLn $ show (arg, val)
+    Just val -> liftIO $ putStrLn $ ppsignature (arg, val)
     Nothing -> exec False (L.pack arg)
+
 
 -- :quit command
 quit :: a -> Repl ()
@@ -118,10 +119,10 @@ comp n = do
 
 options :: [(String, [String] -> Repl ())]
 options = [
-    ("load"   , load)
-  , ("browse" , browse)
-  , ("quit"   , quit)
-  , ("type"   , Main.typeof)
+    ("load"  , load)
+  , ("browse", browse)
+  , ("quit"  , quit)
+  , ("type"  , Main.typeof)
   ]
 
 -------------------------------------------------------------------------------

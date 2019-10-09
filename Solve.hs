@@ -1,7 +1,7 @@
 
 {-# LANGUAGE FlexibleInstances #-}
 
-module Solve (solveType, Substitutable(..), TypeError(..), TypeMap) where
+module Solve (solveType, Substitutable(..), TypeMap) where
 
 import Control.Monad.Except
 import Control.Monad.ST
@@ -36,15 +36,6 @@ instance Substitutable Type where
 instance (Functor t, Foldable t, Substitutable a) => Substitutable (t a) where
   apply = fmap . apply
   ftv   = foldr (Set.union . ftv) Set.empty
-
-data TypeError
-  = UnificationFail Type Type
-  | InfiniteType TVar Type
-  | UnboundVariable String
---  | Ambigious [Constraint]
-  | UnificationMismatch [Type] [Type]
-  deriving (Show, Eq)
-
 
 
 getMap :: Ord a => Map.Map a b -> a -> ST s b -> ST s (b, Map.Map a b)

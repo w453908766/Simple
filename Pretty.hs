@@ -2,13 +2,10 @@
 {-# Language TypeSynonymInstances #-}
 
 module Pretty (
-  ppconstraint,
-  ppconstraints,
   ppdecl,
   ppenv,
   ppexpr,
   ppscheme,
-  ppsubst,
   ppsignature,
   pptype
 ) where
@@ -53,10 +50,8 @@ instance Pretty Expr where
   ppr p (Var a) = ppr p a
   ppr p (App a b) = parensIf (p > 0) $ ppr (p+1) a <+> ppr p b
   ppr p (Lam a b) = (text "\\" <> ppr p a) <+> text  "->" <+> ppr p b
-  ppr p (Let a b c) = (text "let" <> ppr p a) <+> text  "=" <+> ppr p b <+> text "in" <+> ppr p c
   ppr p (Lit a) = ppr p a
   ppr p (Op o a b) = parensIf (p>0) $ ppr p a <+> ppr p o <+> ppr p b
-  ppr p (Fix a) = parensIf (p>0) $ text "fix" <> ppr p a
   ppr p (If a b c) =
     (text "if" <> ppr p a) <+>
     text "then" <+> ppr p b <+>
@@ -67,6 +62,10 @@ instance Pretty Lit where
   ppr _ (LBool True) = text "True"
   ppr _ (LBool False) = text "False"
 
+instance Pretty Decl where
+  ppr _ (Define name body) = text "define" <+> text name <+> ppr 0 body
+
+{-
 instance Pretty Constraint where
   ppr p (a, b) = (ppr p a) <+> text " ~ " <+> (ppr p b)
 
@@ -76,6 +75,7 @@ instance Pretty [Constraint] where
 instance Pretty Subst where
   ppr p (Subst s) = vcat (punctuate space (map pprSub $ Map.toList s))
     where pprSub (a, b) = ppr 0 a <+> text "~" <+> ppr 0 b
+-}
 
 instance Show TypeError where
   show (UnificationFail a b) =
@@ -103,7 +103,7 @@ ppdecl (a, b) = "let " ++ a ++ " = " ++ ppexpr b
 
 ppenv :: Env -> [String]
 ppenv env = map ppsignature $ Map.toList env
-
+{-
 ppconstraint :: Constraint -> String
 ppconstraint = render . ppr 0
 
@@ -112,3 +112,4 @@ ppconstraints = render . ppr 0
 
 ppsubst :: Subst -> String
 ppsubst = render . ppr 0
+-}
