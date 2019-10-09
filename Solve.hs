@@ -26,10 +26,7 @@ class Substitutable a where
 instance Substitutable Type where
   apply map t@(TCon _) = t
   apply map (TArr a b) = TArr (apply map a) (apply map b)
-  apply map t@(TVar _) = 
-    case Map.lookup t map of
-      Nothing -> t
-      Just x -> apply map x
+  apply map t@(TVar _) = Map.findWithDefault t t map
 
   ftv TCon{}         = Set.empty
   ftv (TVar a)       = Set.singleton a
@@ -96,6 +93,7 @@ filterItem _ _ = False
 
 solveType :: [Pair Type] -> Either TypeError (Map.Map Type Type)
 solveType cs = runST $ runExceptT $ do 
+
   map <- foldM unionType Map.empty cs
   let map1 = Map.filterWithKey filterItem map
   tymap <- lift $ traverse descriptor map1

@@ -2,9 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Syntax
-import Infer1
+import Infer
 import Parser
-import Pretty
 import Eval
 
 

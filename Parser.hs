@@ -32,12 +32,6 @@ bool :: Parser Expr
 bool = (reserved "True" >> return (Lit (LBool True)))
     <|> (reserved "False" >> return (Lit (LBool False)))
 
-fix :: Parser Expr
-fix = do
-  reservedOp "fix"
-  x <- expr
-  return (Fix x)
-
 lambda :: Parser Expr
 lambda = do
   reservedOp "\\"
@@ -72,7 +66,6 @@ aexp =
   <|> bool
   <|> number
   <|> ifthen
-  <|> fix
   <|> letin
   <|> lambda
   <|> variable
@@ -105,46 +98,34 @@ table = [
 expr :: Parser Expr
 expr = Ex.buildExpressionParser table term
 
-type Binding = (String, Expr)
-
-letdecl :: Parser Binding
+letdecl :: Parser Decl
 letdecl = do
   reserved "let"
   name <- identifier
   args <- many identifier
   reservedOp "="
   body <- expr
-  return $ (name, foldr Lam body args)
+  return $ Define name (foldr Lam body args)
 
-letrecdecl :: Parser (String, Expr)
-letrecdecl = do
-  reserved "let"
-  reserved "rec"
-  name <- identifier
-  args <- many identifier
-  reservedOp "="
-  body <- expr
-  return $ (name, Fix $ foldr Lam body (name:args))
-
-val :: Parser Binding
+val :: Parser Decl
 val = do
   ex <- expr
-  return ("it", ex)
+  return $ Define "it" ex
 
-decl :: Parser Binding
-decl = try letrecdecl <|> letdecl <|> val
+decl :: Parser Decl
+decl = letdecl <|> val
 
-top :: Parser Binding
+top :: Parser Decl
 top = do
   x <- decl
   optional semi
   return x
 
-modl ::  Parser [Binding]
+modl ::  Parser [Decl]
 modl = many top
 
 parseExpr :: L.Text -> Either ParseError Expr
 parseExpr input = parse (contents expr) "<stdin>" input
 
-parseModule ::  FilePath -> L.Text -> Either ParseError [(String, Expr)]
+parseModule ::  FilePath -> L.Text -> Either ParseError [Decl]
 parseModule fname input = parse (contents modl) fname input

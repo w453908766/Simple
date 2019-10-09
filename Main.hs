@@ -6,7 +6,7 @@
 import Syntax
 import Infer
 import Parser
-import Pretty
+--import Pretty
 import Eval
 
 import Data.Monoid
@@ -27,15 +27,15 @@ import System.Console.Repline
 -- Types
 -------------------------------------------------------------------------------
 
-data IState = IState
-  { tyctx :: Env  -- Type environment
-  , tmctx :: TermEnv  -- Value environment
-  }
+type IState = (Env, TermEnv)
+
+tyctx = fst
 
 initState :: IState
-initState = IState Map.empty emptyTmenv
+initState = (mempty, mempty)
 
 type Repl a = HaskelineT (StateT IState IO) a
+
 hoistErr :: Show e => Either e a -> Repl a
 hoistErr (Right val) = return val
 hoistErr (Left err) = do
@@ -46,42 +46,25 @@ hoistErr (Left err) = do
 -- Execution
 -------------------------------------------------------------------------------
 
-evalDef :: TermEnv -> (String, Expr) -> TermEnv
-evalDef env (nm, ex) = tmctx'
-  where (val, tmctx') = runEval env nm ex
-
 exec :: Bool -> L.Text -> Repl ()
 exec update source = do
-  -- Get the current interpreter state
-  st <- get
 
-  -- Parser ( returns AST )
+  (tys, tms) <- get
+
   mod <- hoistErr $ parseModule "<stdin>" source
 
-  -- Type Inference ( returns Typing Environment )
-  tyctx' <- hoistErr $ inferTop (tyctx st) mod
+  ty' <- hoistErr $ inferTop tys mod
 
-  -- Create the new environment
-  let st' = st { tmctx = foldl' evalDef (tmctx st) mod
-               , tyctx = tyctx' <> (tyctx st)
-               }
+  let tms' = foldl' evalDef tms mod
+  let tys' = tys <> ty'
 
-  -- Update the interpreter state
-  when update (put st')
+  when update (put (tys', tms'))
 
-  -- If a value is entered, print it.
-  case lookup "it" mod of
-    Nothing -> return ()
-    Just ex -> do
-      let (val, _) = runEval (tmctx st') "it"  ex
-      showOutput (show val) st'
+  let (Define name _) = last mod
 
-showOutput :: String -> IState -> Repl ()
-showOutput arg st = do
-  case Map.lookup "it" (tyctx st)  of
-    Just val -> liftIO $ putStrLn $ ppsignature (arg, val)
-    Nothing -> return ()
+  when (name=="it") $ liftIO $ putStrLn $ show $ (Map.!) tms' "it"
 
+    
 cmd :: String -> Repl ()
 cmd source = exec True (L.pack source)
 
@@ -93,7 +76,7 @@ cmd source = exec True (L.pack source)
 browse :: [String] -> Repl ()
 browse _ = do
   st <- get
-  liftIO $ mapM_ putStrLn $ ppenv (tyctx st)
+  liftIO $ mapM_ putStrLn $ fmap show (tyctx st)
 
 -- :load command
 load :: [String] -> Repl ()
@@ -107,7 +90,7 @@ typeof args = do
   st <- get
   let arg = unwords args
   case Map.lookup arg (tyctx st) of
-    Just val -> liftIO $ putStrLn $ ppsignature (arg, val)
+    Just val -> liftIO $ putStrLn $ show (arg, val)
     Nothing -> exec False (L.pack arg)
 
 -- :quit command
