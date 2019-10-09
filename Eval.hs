@@ -48,11 +48,6 @@ eval env (App fun arg) =
       nenv = Map.insert x argv clo
   in eval nenv body
 
-eval env (Let x e body) =
-  let e' = eval env e
-      nenv = Map.insert x e' env
-  in eval nenv body
-
 eval env (If cond tr fl) =
   case eval env cond of
     VBool True  -> eval env tr
@@ -63,5 +58,4 @@ evalDef env (Define name value) = env'
   where 
     val = eval env' value   
     env' = Map.insert name val env
-
 

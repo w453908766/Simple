@@ -6,7 +6,6 @@ data Expr
   = Var Name
   | App Expr Expr
   | Lam Name Expr
-  | Let Name Expr Expr
   | Lit Lit
   | If Expr Expr Expr
   | Op Binop Expr Expr

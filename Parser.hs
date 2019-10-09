@@ -40,16 +40,6 @@ lambda = do
   body <- expr
   return $ foldr Lam body args
 
-letin :: Parser Expr
-letin = do
-  reserved "let"
-  x <- identifier
-  reservedOp "="
-  e1 <- expr
-  reserved "in"
-  e2 <- expr
-  return (Let x e1 e2)
-
 ifthen :: Parser Expr
 ifthen = do
   reserved "if"
@@ -66,7 +56,6 @@ aexp =
   <|> bool
   <|> number
   <|> ifthen
-  <|> letin
   <|> lambda
   <|> variable
 
@@ -98,9 +87,9 @@ table = [
 expr :: Parser Expr
 expr = Ex.buildExpressionParser table term
 
-letdecl :: Parser Decl
-letdecl = do
-  reserved "let"
+define :: Parser Decl
+define = do
+  reserved "define"
   name <- identifier
   args <- many identifier
   reservedOp "="
@@ -113,7 +102,7 @@ val = do
   return $ Define "it" ex
 
 decl :: Parser Decl
-decl = letdecl <|> val
+decl = define <|> val
 
 top :: Parser Decl
 top = do

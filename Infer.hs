@@ -86,36 +86,33 @@ infer (If cond tr fl) = do
   putConstraint (tr', fl')
   return tr'
 
+infer (App e1 e2) = do
+  t1 <- infer e1
+  t2 <- infer e2
+  tv <- newTVar
+
+  putConstraint (t1, TArr t2 tv)
+  return tv
+
 infer (Lam name expr) = do
+  (vt, rt) <- withVar name expr
+  return (TArr vt rt)
+
+inferDefine :: Decl -> Infer Type
+inferDefine (Define name expr) = do
+  (vt, rt) <- withVar name expr
+  putConstraint (vt, rt)
+  return rt
+
+withVar :: String -> Expr -> Infer (Type, Type)
+withVar name expr = do
   vt <- newTVar
   (env, _, _) <- get
   let env' = Map.insert name (Forall [] vt) env
   putEnv env'
   rt <- infer expr
   putEnv env
-  return (TArr vt rt)
-
-infer (App e1 e2) = do
-  t1 <- infer e1
-  t2 <- infer e2
-  tv <- newTVar
-
-
-  putConstraint (t1, TArr t2 tv)
-  return tv
-
-inferDefine :: Decl -> Infer Type
-inferDefine (Define name exp) = do
-  vt <- newTVar
-  (env, _, _) <- get
-  let env' = Map.insert name (Forall [] vt) env
-  putEnv env'
-
-  rt <- infer exp
-
-  putConstraint (vt, rt)
-  putEnv env
-  return rt
+  return (vt, rt)
 
 
 letters :: [String]
