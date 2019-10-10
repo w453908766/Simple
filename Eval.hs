@@ -19,11 +19,17 @@ instance Show Value where
 
 type TermEnv = Map.Map String Value
 
-binop :: Binop -> Integer -> Integer -> Value
-binop Add a b = VInt $ a + b
-binop Mul a b = VInt $ a * b
-binop Sub a b = VInt $ a - b
-binop Eql a b = VBool $ a == b
+binop :: Binop -> Value -> Value -> Value
+binop Add (VInt a) (VInt b) = VInt (a+b)
+binop Sub (VInt a) (VInt b) = VInt (a-b)
+binop Mul (VInt a) (VInt b) = VInt (a*b)
+binop Eql (VInt a) (VInt b) = VBool (a==b)
+
+binop Add (VBool a) (VBool b) = VBool (a || b)
+binop Sub (VBool a) (VBool b) = VBool ((a && not b) || (not a && b))
+binop Mul (VBool a) (VBool b) = VBool (a && b)
+binop Eql (VBool a) (VBool b) = VBool (a==b)
+ 
 
 eval :: TermEnv -> Expr -> Value
 eval env (Lit (LInt k)) = VInt k
@@ -35,9 +41,9 @@ eval env (Var x) =
     Nothing -> trace (show (x, env)) undefined
 
 eval env (Op op a b) =
-  let VInt a' = eval env a
-      VInt b' = eval env b
-  in (binop op) a' b'
+  let a' = eval env a
+      b' = eval env b
+  in binop op a' b'
 
 eval env (Lam x body) = 
   VClosure x body env

@@ -60,11 +60,6 @@ newTVar = do
   return $ TVar x
 
 
-ops :: Binop -> Type
-ops Eql = typeBool
-ops _ = typeInt
-
-
 infer :: Expr -> Infer Type
 infer (Lit (LInt _)) = return typeInt
 infer (Lit (LBool _)) = return typeBool
@@ -74,9 +69,10 @@ infer (Var name) = lookupEnv name
 infer (Op binop a b) = do
   a' <- infer a
   b' <- infer b
-  putConstraint (a', typeInt)
-  putConstraint (b', typeInt)
-  return $ ops binop
+  putConstraint (a', b')
+  if binop == Eql 
+  then return typeBool
+  else return a'
 
 infer (If cond tr fl) = do
   cond' <- infer cond
